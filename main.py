@@ -24,7 +24,7 @@ connected_clients = set()
 
 async def chat_handler(websocket):
     connected_clients.add(websocket)
-    await websocket.send({"motd":motd})
+    await websocket.send(json.dumps({"motd":motd}))
     try:
         async for message in websocket:
             try:
