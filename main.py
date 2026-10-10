@@ -154,7 +154,7 @@ async def chat_handler(websocket):
 async def main():
     portuse = 5615
 
-    async with serve(chat_handler, "localhost", portuse):
+    async with serve(chat_handler, "0.0.0.0", portuse):
         logger.info(f"Running on port {portuse}")
         await asyncio.get_running_loop().create_future()
 
