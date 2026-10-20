@@ -136,6 +136,10 @@ async def chat_handler(websocket):
 
                         await websocket.send(json.dumps(retrievelines(channel, length)))
 
+                    if cmd == "getdata":
+                        channels = "null"
+                        data = {"channels":channels}
+
                 else:
                     await websocket.send(json.dumps(makejsonerror("Invalid auth")))
 
