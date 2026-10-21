@@ -9,39 +9,6 @@ import uuid
 import time
 from pathlib import Path
 from collections import deque
-import mimetypes
-from http import HTTPStatus
-from websockets.http11 import Response
-
-web_dir = Path("web").resolve()
-
-def process_request(connection, request):
-    if request.headers.get("Upgrade", "").lower() == "websocket":
-        return None
-
-    path = request.path.split("?", 1)[0]
-
-    if path == "/":
-        path = "/index.html"
-
-    file_path = (web_dir / path.lstrip("/")).resolve()
-
-    if web_dir not in file_path.parents:
-        return Response(HTTPStatus.FORBIDDEN, "Forbidden", [], b"Forbidden")
-
-    try:
-        content = file_path.read_bytes()
-    except FileNotFoundError:
-        return Response(HTTPStatus.NOT_FOUND, "Not Found", [], b"Not Found")
-
-    content_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
-
-    return Response(
-        HTTPStatus.OK,
-        "OK",
-        [("Content-Type", content_type)],
-        content
-    )
 
 def delete_message(channel, msgid):
     path = f"channels/{channel}.json"
@@ -153,7 +120,7 @@ async def chat_handler(websocket):
                     if cmd == "delete_message":
                         messageid = message["msgid"]
                         channel = message["channel"]
-                        message = find_message(channel, messageid)
+                        message = json.dumps(find_message(channel, messageid))
                         validation = validate(token)
                         if messageid and validation and message["userid"] == validation["userid"]:
                             try:
@@ -193,12 +160,7 @@ async def chat_handler(websocket):
 async def main():
     portuse = 5615
 
-    async with serve(
-        chat_handler,
-        "0.0.0.0",
-        portuse,
-        process_request=process_request
-    ):
+    async with serve(chat_handler, "0.0.0.0", portuse):
         logger.info(f"Running on port {portuse}")
         await asyncio.get_running_loop().create_future()
 
