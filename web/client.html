@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CAMI Chat</title>
+<style>
+:root{color-scheme:dark;--bg:#151515;--panel:#1c1c1c;--panel2:#222;--line:#303030;--text:#f2f2f2;--muted:#929292;--accent:#ff8c42;--danger:#ff7777}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;height:100dvh}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);height:100dvh;max-width:1500px;margin:auto}
+.sidebar{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.brand{height:62px;padding:0 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);font-size:17px;font-weight:750;letter-spacing:.4px}
+.brand-mark{width:10px;height:10px;background:var(--accent);border-radius:3px}
+.section-label{padding:22px 14px 8px;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.channels{padding:0 8px;display:grid;gap:3px}
+.channel{border:0;background:transparent;color:#b9b9b9;text-align:left;padding:9px 10px;border-radius:6px;display:flex;gap:9px;align-items:center}
+.channel:hover{background:#292929;color:var(--text)}
+.channel.active{background:#34281f;color:#fff}
+.hash{color:var(--muted);font-size:16px}
+.channel.active .hash{color:var(--accent)}
+.sidebar-bottom{margin-top:auto;padding:12px;border-top:1px solid var(--line)}
+.profile{display:flex;align-items:center;gap:10px;min-width:0}
+.avatar{width:32px;height:32px;border-radius:50%;background:#393939;color:#ffd0ac;display:grid;place-items:center;font-weight:700;flex:none}
+.profile-info{min-width:0;flex:1}
+.profile-name{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.profile-state{font-size:12px;color:var(--muted)}
+.settings-button{border:0;background:transparent;color:var(--muted);padding:6px;border-radius:5px}
+.settings-button:hover{background:#303030;color:var(--text)}
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{height:62px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;gap:12px}
+.channel-title{font-weight:700;font-size:15px}
+.subtitle{font-size:12px;color:var(--muted);margin-top:2px}
+.status{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:#777}
+.dot.online{background:#65c98c}
+.dot.error{background:var(--danger)}
+.messages{flex:1;overflow-y:auto;padding:22px clamp(14px,4vw,54px);display:flex;flex-direction:column;gap:20px}
+.message{display:grid;grid-template-columns:36px minmax(0,1fr);gap:11px;align-items:start}
+.message .avatar{width:36px;height:36px;font-size:13px}
+.message-head{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.username{font-weight:700}
+.timestamp{font-size:11px;color:var(--muted)}
+.message-body{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:3px;color:#dedede}
+.message-body code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#2b2b2b;padding:2px 5px;border-radius:4px}
+.message-actions{float:right;opacity:0}
+.message:hover .message-actions{opacity:1}
+.delete-btn{border:0;background:transparent;color:var(--muted);font-size:12px}
+.delete-btn:hover{color:var(--danger)}
+.system-message{align-self:center;color:var(--muted);font-size:12px;text-align:center}
+.composer-wrap{padding:0 clamp(14px,4vw,54px) 20px}
+.composer{display:flex;align-items:flex-end;gap:10px;background:var(--panel2);border:1px solid #383838;border-radius:9px;padding:8px 9px 8px 14px}
+.composer:focus-within{border-color:#765036}
+.composer input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--text);padding:7px 0}
+.send{width:34px;height:34px;border:0;border-radius:6px;background:var(--accent);color:#21150d;font-size:19px;font-weight:700}
+.send:hover{background:#ffa064}
+.send:disabled{opacity:.45;cursor:not-allowed}
+.hint{font-size:11px;color:var(--muted);margin:8px 2px 0}
+.empty{margin:auto;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:#d7d7d7;font-size:16px;margin-bottom:5px}
+.overlay{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.dialog{width:min(420px,100%);background:#202020;border:1px solid #383838;border-radius:12px;padding:22px;box-shadow:0 20px 70px #0008}
+.dialog h2{font-size:18px;margin:0 0 6px}
+.dialog p{color:var(--muted);font-size:13px;margin:0 0 18px}
+.dialog label{display:block;font-size:12px;color:#bcbcbc;margin:13px 0 6px}
+.dialog input{width:100%;background:#151515;border:1px solid #383838;border-radius:6px;padding:11px;color:var(--text);outline:0}
+.dialog input:focus{border-color:var(--accent)}
+.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.btn{border:1px solid #414141;background:#292929;color:var(--text);padding:9px 13px;border-radius:6px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#24160d;font-weight:700}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#292929;border:1px solid #444;border-radius:8px;padding:10px 14px;color:var(--text);display:none;max-width:min(90vw,500px);box-shadow:0 8px 30px #0005}
+.toast.show{display:block}
+@media(max-width:620px){.app{grid-template-columns:64px minmax(0,1fr)}.brand{padding:0;justify-content:center;font-size:0}.brand-mark{width:13px;height:13px}.section-label{font-size:0;padding:18px 0 8px}.channels{padding:0 7px}.channel{justify-content:center;padding:10px 0;font-size:0}.hash{font-size:19px}.sidebar-bottom{padding:10px 7px}.profile{justify-content:center}.profile-info,.settings-button{display:none}.topbar{padding:0 14px}.status span:last-child{display:none}.messages{padding:18px 12px;gap:18px}.composer-wrap{padding:0 12px 12px}.hint{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark"></span>CAMI</div>
+    <div class="section-label">Channels</div>
+    <nav class="channels" id="channels">
+      <button class="channel active" data-channel="general"><span class="hash">#</span>general</button>
+      <button class="channel" data-channel="coding"><span class="hash">#</span>coding</button>
+      <button class="channel" data-channel="off-topic"><span class="hash">#</span>off-topic</button>
+      <button class="channel" data-channel="shitpost"><span class="hash">#</span>shitpost</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="profile">
+        <div class="avatar" id="profileAvatar">?</div>
+        <div class="profile-info"><div class="profile-name" id="profileName">Not signed in</div><div class="profile-state" id="profileState">Click to connect</div></div>
+        <button class="settings-button" id="authButton" title="Account settings">⚙</button>
+      </div>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div><div class="channel-title" id="channelTitle"># general</div><div class="subtitle">Keep it simple.</div></div>
+      <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Disconnected</span></div>
+    </header>
+    <section class="messages" id="messages" aria-live="polite">
+      <div class="empty"><strong>Welcome to CAMI</strong>Sign in to start chatting.</div>
+    </section>
+    <div class="composer-wrap">
+      <form class="composer" id="composer">
+        <input id="messageInput" autocomplete="off" maxlength="4000" placeholder="Sign in to send messages…" disabled>
+        <button class="send" id="sendButton" type="submit" disabled aria-label="Send message">↑</button>
+      </form>
+      <div class="hint">Enter to send · Messages must be at least 5 characters</div>
+    </div>
+  </main>
+</div>
+<div class="overlay" id="authOverlay">
+  <form class="dialog" id="authForm">
+    <h2>Connect to CAMI</h2>
+    <p>Sign in with your CAMI account.</p>
+    <label for="usernameInput">Username</label>
+    <input id="usernameInput" autocomplete="username" placeholder="Username" required minlength="4" maxlength="32">
+    <label for="passwordInput">Password</label>
+    <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Password" required minlength="4" maxlength="128">
+    <div id="authError" style="color:#ff7777;font-size:12px;margin-top:10px" role="alert"></div>
+    <div class="dialog-actions"><button type="button" class="btn" id="cancelAuth">Cancel</button><button class="btn primary" id="loginSubmit" type="submit">Log in</button></div>
+    <div style="margin-top:14px;text-align:center;font-size:12px;color:#929292">New here? <button type="button" class="delete-btn" id="showRegister" style="opacity:1;color:#ffad76">Create an account</button></div>
+  </form>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+(() => {
+  const WS_URL = "wss://chat.barfpile.dev";
+  const channels = ["general", "coding", "off-topic", "shitpost"];
+  let ws = null, token = "", username = "", userid = "", currentChannel = "general";
+  let reconnectTimer = null, manuallyClosed = false, toastTimer = null, authMode = "login";
+  const $ = id => document.getElementById(id);
+  const messagesEl = $("messages"), input = $("messageInput"), sendButton = $("sendButton");
+
+  function toast(message) {
+    $("toast").textContent = message;
+    $("toast").classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $("toast").classList.remove("show"), 3200);
+  }
+  function status(text, kind="") {
+    $("statusText").textContent = text;
+    $("statusDot").className = "dot" + (kind ? " " + kind : "");
+  }
+  function setConnected(connected) {
+    input.disabled = !connected;
+    sendButton.disabled = !connected;
+    input.placeholder = connected ? `Message #${currentChannel}` : "Sign in to send messages…";
+    $("profileName").textContent = username || "Not signed in";
+    $("profileAvatar").textContent = username ? username.slice(0,1).toUpperCase() : "?";
+    $("profileState").textContent = connected ? "Connected" : "Click to connect";
+  }
+  function safeText(value) { return value == null ? "" : String(value); }
+  function addSystem(text) {
+    const el = document.createElement("div");
+    el.className = "system-message";
+    el.textContent = text;
+    messagesEl.appendChild(el);
+  }
+  function renderMessage(message) {
+    if (!message || message.channel !== currentChannel) return;
+    const empty = messagesEl.querySelector(".empty");
+    if (empty) empty.remove();
+    if (message.cmd === "delete_message") {
+      const old = messagesEl.querySelector(`[data-msgid="${CSS.escape(safeText(message.id || message.msgid))}"]`);
+      if (old) old.remove();
+      return;
+    }
+    const id = safeText(message.id || message.msgid);
+    if (id && messagesEl.querySelector(`[data-msgid="${CSS.escape(id)}"]`)) return;
+    const row = document.createElement("article");
+    row.className = "message";
+    if (id) row.dataset.msgid = id;
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    const name = safeText(message.username) || "Unknown";
+    avatar.textContent = name.slice(0,1).toUpperCase();
+    const content = document.createElement("div");
+    const head = document.createElement("div");
+    head.className = "message-head";
+    const nameEl = document.createElement("span");
+    nameEl.className = "username";
+    nameEl.textContent = name;
+    const timeEl = document.createElement("time");
+    timeEl.className = "timestamp";
+    const stamp = Number(message.timestamp);
+    timeEl.textContent = Number.isFinite(stamp) && stamp > 0 ? new Date(stamp * 1000).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "";
+    head.append(nameEl, timeEl);
+    if (message.userid && userid && message.userid === userid && id) {
+      const del = document.createElement("button");
+      del.className = "delete-btn message-actions";
+      del.textContent = "Delete";
+      del.type = "button";
+      del.addEventListener("click", () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({cmd:"delete_message", channel:currentChannel, msgid:id}));
+        }
+      });
+      head.appendChild(del);
+    }
+    const body = document.createElement("div");
+    body.className = "message-body";
+    body.textContent = safeText(message.body);
+    content.append(head, body);
+    row.append(avatar, content);
+    messagesEl.appendChild(row);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+  function showHistory(data) {
+    messagesEl.replaceChildren();
+    let list = Array.isArray(data) ? data : (data && Array.isArray(data.message) ? data.message : []);
+    list.forEach(renderMessage);
+    if (!messagesEl.children.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      const title = document.createElement("strong");
+      title.textContent = "Nothing here yet";
+      empty.append(title, document.createTextNode("Start the conversation."));
+      messagesEl.appendChild(empty);
+    }
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+  function requestHistory() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({cmd:"gethistory", channel:currentChannel, length:100}));
+    }
+  }
+  async function accountRequest(mode, username, password) {
+    const endpoint = mode === "register" ? "register" : "login";
+
+    try {
+        const response = await fetch(
+            `https://cami.barfpile.dev/${endpoint}`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ username, password })
+            }
+        );
+
+        const raw = await response.text();
+
+        if (!response.ok) {
+            throw new Error(raw || `HTTP ${response.status}`);
+        }
+
+        console.log("CAMI login response:", raw);
+
+        let token = raw.trim();
+
+        try {
+            const data = JSON.parse(raw);
+
+            token = typeof data === "string"
+                ? data
+                : data.token || data.message?.token || data.message || "";
+        } catch {}
+
+        if (!token || typeof token !== "string") {
+            throw new Error("CAMI did not return a token.");
+        }
+
+        $("authOverlay").classList.remove("open");
+        connect(token.trim());
+
+        if (!token || typeof token !== "string") {
+            throw new Error("CAMI did not return a token.");
+        }
+
+        $("authOverlay").classList.remove("open");
+        connect(token.trim());
+
+    } catch (error) {
+        $("authError").textContent = error.message;
+    }
+  }
+  function connect(savedToken) {
+    token = savedToken.trim();
+    if (!token) { $("authOverlay").classList.add("open"); return; }
+    manuallyClosed = false;
+    if (ws) { try { ws.close(); } catch (_) {} }
+    status("Connecting");
+    const socket = new WebSocket(WS_URL);
+    ws = socket;
+    socket.addEventListener("open", () => {
+      if (ws !== socket) return;
+      socket.send(JSON.stringify({cmd:"auth", token}));
+    });
+    socket.addEventListener("message", event => {
+      if (ws !== socket) return;
+      let data;
+      try { data = JSON.parse(event.data); } catch (_) { return; }
+      if (data && data.motd) { addSystem(data.motd); return; }
+      if (data && data.cmd === "success") {
+        status("Connected", "online");
+        setConnected(true);
+        localStorage.setItem("camiToken", token);
+        requestHistory();
+        return;
+      }
+      if (data && data.cmd === "error") {
+        toast(data.message || "Chat error");
+        if (/auth|token|valid/i.test(safeText(data.message))) {
+          status("Authentication failed", "error");
+          setConnected(false);
+        }
+        return;
+      }
+      if (Array.isArray(data)) { showHistory(data); return; }
+      if (data && data.cmd === "new_message") { renderMessage(data); return; }
+      if (data && data.cmd === "delete_message") { renderMessage(data); return; }
+      if (data && data.cmd === "connect") {
+        if (data.id === userid) { username = data.username || username; setConnected(true); }
+        return;
+      }
+      if (data && data.cmd === "disconnect") return;
+    });
+    socket.addEventListener("close", () => {
+      if (ws !== socket) return;
+      setConnected(false);
+      status("Disconnected");
+      if (!manuallyClosed && token) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(() => connect(token), 2500);
+      }
+    });
+    socket.addEventListener("error", () => {
+      if (ws === socket) status("Connection error", "error");
+    });
+  }
+  $("channels").addEventListener("click", event => {
+    const button = event.target.closest("[data-channel]");
+    if (!button) return;
+    currentChannel = button.dataset.channel;
+    document.querySelectorAll(".channel").forEach(el => el.classList.toggle("active", el === button));
+    $("channelTitle").textContent = "# " + currentChannel;
+    input.placeholder = `Message #${currentChannel}`;
+    messagesEl.replaceChildren();
+    addSystem("Loading messages…");
+    requestHistory();
+  });
+  $("composer").addEventListener("submit", event => {
+    event.preventDefault();
+    const body = input.value.trim();
+    if (!body || !ws || ws.readyState !== WebSocket.OPEN) return;
+    if (body.length < 5) { toast("Messages must be at least 5 characters."); return; }
+    ws.send(JSON.stringify({cmd:"new_message", channel:currentChannel, body}));
+    input.value = "";
+    input.focus();
+  });
+  function setAuthMode(mode) {
+    authMode = mode;
+    $("authError").textContent = "";
+    $("authForm").querySelector("h2").textContent = mode === "register" ? "Create a CAMI account" : "Log in to CAMI";
+    $("loginSubmit").textContent = mode === "register" ? "Create account" : "Log in";
+    $("showRegister").textContent = mode === "register" ? "Back to login" : "Create an account";
+    $("authForm").querySelector("p").textContent = mode === "register" ? "Create an account to start chatting." : "Sign in with your CAMI account.";
+    $("passwordInput").autocomplete = mode === "register" ? "new-password" : "current-password";
+  }
+  $("authButton").addEventListener("click", () => {
+    setAuthMode("login");
+    $("authOverlay").classList.add("open");
+    $("usernameInput").focus();
+  });
+  $("showRegister").addEventListener("click", () => setAuthMode(authMode === "register" ? "login" : "register"));
+  $("cancelAuth").addEventListener("click", () => $("authOverlay").classList.remove("open"));
+  $("authForm").addEventListener("submit", event => {
+    event.preventDefault();
+    const accountName = $("usernameInput").value.trim();
+    const password = $("passwordInput").value;
+    if (accountName.length < 4 || accountName.length > 32) {
+      $("authError").textContent = "Username must be 4–32 characters.";
+      return;
+    }
+    if (password.length < 4 || password.length > 128) {
+      $("authError").textContent = "Password must be at least 4 characters.";
+      return;
+    }
+    accountRequest(authMode, accountName, password);
+  });
+  window.addEventListener("beforeunload", () => {
+    manuallyClosed = true;
+    clearTimeout(reconnectTimer);
+    if (ws) ws.close();
+  });
+  setConnected(false);
+  const saved = localStorage.getItem("camiToken");
+  if (saved) { token = saved; connect(saved); }
+  else { $("authOverlay").classList.add("open"); setAuthMode("login"); }
+})();
+</script>
+</body>
+</html>
