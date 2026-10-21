@@ -109,8 +109,8 @@ async def chat_handler(websocket):
                         content = message["body"]
                         if len(content) >= 5:
                             channel = message["channel"]
-                            msgid = f"msg{uuid.uuid4}"
-                            data = {"cmd": "new_message", "username": username, "userid": user, "channel": channel, "timestamp": time.time(), "id": msgid, "body": content}
+                            msgid = f"msg{uuid.uuid4()}"
+                            data = {"cmd": "new_message", "username": username, "userid": user, "channel": channel, "timestamp": time.time(), "msgid": msgid, "body": content}
                             savetofile(channel, json.dumps(data))
                             logger.success(f"{username} - {content}")
                             broadcast(authed_clients, json.dumps(data))
