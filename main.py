@@ -118,8 +118,8 @@ async def chat_handler(websocket):
                             await websocket.send(json.dumps(makejsonerror("Message too short. Must be 5 chars at least.")))
 
                     if cmd == "delete_message":
-                        messageid = message["msgid"]
-                        channel = message["channel"]
+                        messageid = message.get("msgid")
+                        channel = message.get("channel")
                         found = find_message(channel, messageid)
                         validation = validate(token)
                         if messageid and found and validation and found["userid"] == validation["userid"]:
