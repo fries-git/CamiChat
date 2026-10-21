@@ -120,13 +120,13 @@ async def chat_handler(websocket):
                     if cmd == "delete_message":
                         messageid = message["msgid"]
                         channel = message["channel"]
-                        message = json.dumps(find_message(channel, messageid))
+                        found = find_message(channel, messageid)
                         validation = validate(token)
-                        if messageid and validation and message["userid"] == validation["userid"]:
+                        if messageid and found and validation and found["userid"] == validation["userid"]:
                             try:
                                 delete_message(channel, messageid)
                                 data = {"cmd": "delete_message", "username": username, "userid": user, "channel": channel, "id": msgid}
-                                await broadcast(data)
+                                await broadcast(json.dumps(data))
                             except Exception as e:
                                 await websocket.send(e)
                         else:
