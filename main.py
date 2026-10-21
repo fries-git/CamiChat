@@ -126,11 +126,9 @@ async def chat_handler(websocket):
                             try:
                                 delete_message(channel, messageid)
                                 data = {"cmd": "delete_message", "username": username, "userid": user, "channel": channel, "msgid": messageid}
-                                await broadcast(authed_clients, json.dumps(data))
-                            except Exception:
-                                import traceback
-                                traceback.print_exc()
-                                await websocket.send(json.dumps(makejsonerror("Delete failed.")))
+                                broadcast(authed_clients, json.dumps(data))
+                            except Exception as e:
+                                await websocket.send(e)
                         else:
                             await websocket.send(json.dumps(makejsonerror("No msgid provided.")))
 
