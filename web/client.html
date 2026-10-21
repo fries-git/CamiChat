@@ -250,7 +250,7 @@ button{cursor:pointer}
     if (id && userid && m.userid === userid) {
       const del = document.createElement("button");
       del.className = "delete-btn message-actions"; del.type = "button"; del.textContent = "Delete";
-      del.addEventListener("click", () => send({ cmd: "delete_message", channel, msgid: id }));
+      del.addEventListener("click", () => deleteMessage(id));
       row.appendChild(del);
     }
     const body = document.createElement("div"); body.className = "message-body";
@@ -337,6 +337,27 @@ button{cursor:pointer}
     if (c === channel) { const keep = atBottom(); renderChannel(); if (!keep) jump.classList.add("show"); }
   }
 
+  // Optimistic delete: remove locally, restore if the server reports an error.
+  const pendingDelete = new Map();
+  function deleteMessage(id) {
+    const m = (cache[channel] || []).find(x => str(x.id || x.msgid) === id);
+    if (!m || !send({ cmd: "delete_message", channel, msgid: id })) return;
+    pendingDelete.set(id, m);
+    setTimeout(() => pendingDelete.delete(id), 5000);
+    onDelete({ id, channel });
+  }
+  function restorePending(reason) {
+    if (!pendingDelete.size) return false;
+    for (const m of pendingDelete.values()) {
+      if (cache[m.channel] && !cache[m.channel].some(x => msgKey(x) === msgKey(m))) cache[m.channel].push(m);
+    }
+    pendingDelete.clear();
+    Object.values(cache).forEach(a => a.sort((x, y) => (x.timestamp || 0) - (y.timestamp || 0)));
+    renderChannelIfNeeded();
+    toast(reason || "Could not delete message.");
+    return true;
+  }
+
   function handle(raw) {
     const d = unwrap(raw);
     if (d == null) return;
@@ -353,9 +374,10 @@ button{cursor:pointer}
         return;
       case "error":
         if (!authed) { failAuth(str(d.message)); return; }
+        if (restorePending(str(d.message))) return;
         toast(str(d.message) || "Chat error"); return;
       case "new_message": return onNewMessage(d);
-      case "delete_message": return onDelete(d);
+      case "delete_message": pendingDelete.delete(str(d.id || d.msgid)); return onDelete(d);
       case "connect":
         if (!userid && d.username === username && d.id) { userid = d.id; renderChannelIfNeeded(); }
         return;

@@ -103,7 +103,7 @@ async def chat_handler(websocket):
                     logger.success(f"Welcome {username}")
 
                 elif websocket in authed_clients:
-                    user = next((user for user, username, ws in authpairs if ws == websocket), None)
+                    user, username = next(((user, username) for user, username, ws in authpairs if ws == websocket),(None, None))
 
                     if cmd == "new_message":
                         content = message["body"]
@@ -125,8 +125,8 @@ async def chat_handler(websocket):
                         if messageid and found and validation and found["userid"] == validation["userid"]:
                             try:
                                 delete_message(channel, messageid)
-                                data = {"cmd": "delete_message", "username": username, "userid": user, "channel": channel, "id": msgid}
-                                await broadcast(json.dumps(data))
+                                data = {"cmd": "delete_message", "username": username, "userid": user, "channel": channel, "msgid": messageid}
+                                await broadcast(authed_clients, json.dumps(data))
                             except Exception as e:
                                 await websocket.send(e)
                         else:
