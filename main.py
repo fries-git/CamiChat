@@ -95,7 +95,6 @@ async def chat_handler(websocket):
                     userobj = {"user": userid, "auth": websocket}
                     chatauth(userid, username, websocket)
                     authed_clients.add(websocket)
-
                     await websocket.send(json.dumps(makejsonsuccess("Successfully authed.")))
 
                     data = {"cmd": "connect", "id": userid, "username": username}
@@ -141,6 +140,12 @@ async def chat_handler(websocket):
                     if cmd == "getdata":
                         channels = "null"
                         data = {"channels":channels}
+
+                    if cmd == "getonline":
+                        await websocket.send(json.dumps([{"userid": userid, "username": username} for userid, username, ws in authpairs]))
+
+                    if cmd == "typing":
+                        broadcast(authed_clients - {websocket}, json.dumps({"cmd": "typing", "username": username, "userid": user, "channel": message.get("channel")}))
 
                 else:
                     await websocket.send(json.dumps(makejsonerror("Invalid auth")))
