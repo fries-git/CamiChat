@@ -107,7 +107,7 @@ async def chat_handler(websocket):
 
                     if cmd == "new_message":
                         content = message["body"]
-                        if len(content) >= 5:
+                        if len(content) >= 1:
                             channel = message["channel"]
                             msgid = f"msg{uuid.uuid4()}"
                             data = {"cmd": "new_message", "username": username, "userid": user, "channel": channel, "timestamp": time.time(), "msgid": msgid, "body": content}
@@ -115,7 +115,7 @@ async def chat_handler(websocket):
                             logger.success(f"{username} - {content}")
                             broadcast(authed_clients, json.dumps(data))
                         else:
-                            await websocket.send(json.dumps(makejsonerror("Message too short. Must be 5 chars at least.")))
+                            await websocket.send(json.dumps(makejsonerror("Message too short. Must be 1 chars at least.")))
 
                     if cmd == "delete_message":
                         messageid = message.get("msgid")
