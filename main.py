@@ -121,7 +121,7 @@ async def chat_handler(websocket):
                         channel = message.get("channel")
                         found = find_message(channel, messageid)
                         validation = validate(token)
-                        if messageid and found and validation and found["userid"] == validation["userid"]:
+                        if messageid and found and validation and found["userid"] == validation["userid"] or validation["userid"] == os.getenv("ownerid"):
                             try:
                                 delete_message(channel, messageid)
                                 data = {"cmd": "delete_message", "username": username, "userid": user, "channel": channel, "msgid": messageid}
